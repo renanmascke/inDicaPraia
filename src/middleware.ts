@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   // Protege apenas rotas de API
   if (request.nextUrl.pathname.startsWith('/api')) {
     const apiKey = request.headers.get('x-api-key');
