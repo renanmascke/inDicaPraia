@@ -1,48 +1,48 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import pool from '@/lib/db';
 
 export async function GET(request: Request) {
+  if (!pool) {
+    return NextResponse.json({ message: 'Erro na configuração do banco.' }, { status: 500 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const municipio = searchParams.get('municipio');
     const limit = Number(searchParams.get('limit')) || 20;
     const offset = Number(searchParams.get('offset')) || 0;
 
-    const where: any = {};
+    let query = `
+      SELECT h.*, m.nome as municipio_nome 
+      FROM ima_historico h
+      LEFT JOIN municipios m ON h.municipio_db_id = m.id
+    `;
+    
+    const params: any[] = [];
     if (municipio) {
-      where.municipio = {
-        nome: {
-          contains: municipio,
-        },
-      };
+      query += ` WHERE m.nome LIKE ?`;
+      params.push(`%${municipio}%`);
     }
 
-    const data = await prisma.imaHistorico.findMany({
-      where,
-      take: limit,
-      skip: offset,
-      orderBy: { dataColeta: 'desc' },
-      include: {
-        municipio: {
-          select: { nome: true }
-        }
-      }
-    });
+    query += ` ORDER BY h.data_coleta DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
+    const [rows]: any = await pool.execute(query, params);
 
     return NextResponse.json({
-      count: data.length,
+      count: rows.length,
       limit,
       offset,
-      records: data.map(r => ({
+      records: rows.map((r: any) => ({
         ...r,
-        municipio: r.municipio?.nome,
-        dataColeta: r.dataColeta.toISOString().split('T')[0]
+        municipio: r.municipio_nome,
+        dataColeta: r.data_coleta instanceof Date ? r.data_coleta.toISOString().split('T')[0] : r.data_coleta
       }))
     });
   } catch (error: any) {
-    console.error('[API Data] Erro:', error);
+    console.error('[API Data Nativa] Erro:', error);
     return NextResponse.json(
-      { message: 'Erro ao buscar dados.', error: error.message },
+      { message: 'Erro ao buscar dados no banco.', error: error.message },
       { status: 500 }
     );
   }
