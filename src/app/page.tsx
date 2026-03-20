@@ -9,8 +9,8 @@ export default function Home() {
         <div className="p-4 rounded-lg bg-slate-900 border border-slate-800">
           <h2 className="text-xl font-semibold mb-2 text-green-400">Endpoints Integrados:</h2>
           <ul className="list-disc list-inside space-y-2 text-slate-300">
-            <li><code className="text-pink-400">POST /v1/sync</code> - Sincroniza dados históricos por ano</li>
-            <li><code className="text-pink-400">GET /v1/data</code> - Consulta registros de balneabilidade</li>
+            <li><code className="text-pink-400">POST /api/sync</code> - Sincroniza dados históricos por ano</li>
+            <li><code className="text-pink-400">GET /api/data</code> - Consulta registros de balneabilidade</li>
           </ul>
         </div>
         <div className="p-4 rounded-lg bg-slate-900 border border-slate-800">
