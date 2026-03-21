@@ -6,14 +6,12 @@ const dbUrl = process.env.DATABASE_URL || '';
 const connectionConfig = () => {
   try {
     const url = new URL(dbUrl);
-    const host = url.hostname === 'localhost' ? '127.0.0.1' : url.hostname;
     return {
-      host: host,
+      host: '127.0.0.1',
       user: url.username,
       password: decodeURIComponent(url.password),
       database: url.pathname.substring(1),
-      port: parseInt(url.port) || 3306,
-      ssl: { rejectUnauthorized: false }
+      port: parseInt(url.port) || 3306
     };
   } catch (e) {
     console.error('Erro ao parsear DATABASE_URL:', e);
