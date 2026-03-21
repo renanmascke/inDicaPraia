@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 import fetch from 'node-fetch';
-import prisma from '@/lib/prisma';
+import pool from '@/lib/db';
 
 export interface ImaRecord {
   municipio: string;
@@ -25,6 +25,8 @@ export class ImaScraperService {
    * Sincroniza os dados de um ano específico do IMA para o banco de dados.
    */
   async syncYear(year: number) {
+    if (!pool) throw new Error('Conexão com o banco de dados não disponível.');
+
     console.log(`[IMA] Iniciando sincronização para o ano ${year}...`);
 
     try {
@@ -38,7 +40,7 @@ export class ImaScraperService {
       // 1. Resolver Municípios (Garante que existam no DB)
       const municipioMap = await this.resolveMunicipios(rawRecords);
 
-      // 2. Salvar Histórico em lotes
+      // 2. Salvar Histórico em lotes utilizando SQL nativo
       const result = await this.saveHistorico(rawRecords, municipioMap, year);
 
       return {
@@ -94,7 +96,6 @@ export class ImaScraperService {
       const classes = $table.attr('class') || '';
       const style = $table.attr('style') || '';
 
-      // Tabela de cabeçalho (Município/Localização)
       if (classes.includes('table') && style.includes('text-align: center')) {
         const labels = $table.find('label');
         if (labels.length >= 4) {
@@ -107,7 +108,6 @@ export class ImaScraperService {
         }
       }
 
-      // Tabela de dados de coleta
       if (classes.includes('table-print') && currentBloco) {
         $table.find('tbody tr').each((_, tr) => {
           const cells = $(tr).find('td');
@@ -133,60 +133,67 @@ export class ImaScraperService {
   }
 
   /**
-   * Garante que os municípios existam e retorna um mapa [Nome -> DB ID].
+   * Garante que os municípios existam via SQL nativo.
    */
   private async resolveMunicipios(records: ImaRecord[]): Promise<Map<string, number>> {
     const uniqueNames = Array.from(new Set(records.map(r => r.municipio)));
     
-    // UPSERT para todos os municípios encontrados
-    await Promise.all(
-      uniqueNames.map(name => 
-        prisma.municipio.upsert({
-          where: { nome: name },
-          update: {},
-          create: { nome: name, estado: 'SC' },
-        })
-      )
-    );
+    for (const name of uniqueNames) {
+      // Usando INSERT IGNORE para garantir que o município exista sem duplicar
+      await pool!.execute('INSERT IGNORE INTO municipios (nome, estado) VALUES (?, ?)', [name, 'SC']);
+    }
 
-    const allMunicipios = await prisma.municipio.findMany({
-      where: { nome: { in: uniqueNames } },
-      select: { id: true, nome: true }
-    });
+    const [rows]: any = await pool!.execute('SELECT id, nome FROM municipios WHERE nome IN (' + uniqueNames.map(() => '?').join(',') + ')', uniqueNames);
 
     const map = new Map<string, number>();
-    allMunicipios.forEach(m => map.set(m.nome, m.id));
+    rows.forEach((m: any) => map.set(m.nome, m.id));
     return map;
   }
 
   /**
-   * Salva os registros no banco via Prisma createMany.
+   * Salva os registros no banco via SQL nativo (lote).
    */
   private async saveHistorico(records: ImaRecord[], municipioMap: Map<string, number>, year: number) {
-    const data = records.map(r => ({
-      municipioDbId: municipioMap.get(r.municipio)!,
-      balneario: r.balneario,
-      pontoColeta: r.ponto_coleta,
-      localizacao: r.localizacao,
-      dataColeta: new Date(r.data_coleta),
-      hora: r.hora,
-      vento: r.vento,
-      mare: r.mare,
-      chuva: r.chuva,
-      aguaTemp: r.agua_temp,
-      arTemp: r.ar_temp,
-      ecoli: r.ecoli,
-      condicao: r.condicao,
-      anoReferencia: year,
-    }));
+    let insertedCount = 0;
+    
+    // Processamento em lotes menores para evitar estourar limites de querie SQL
+    const batchSize = 100;
+    for (let i = 0; i < records.length; i += batchSize) {
+      const batch = records.slice(i, i + batchSize);
+      
+      const placeholders = batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+      const values: any[] = [];
 
-    // O Prisma createMany com skipDuplicates é perfeito para esta tarefa incremental
-    const result = await prisma.imaHistorico.createMany({
-      data,
-      skipDuplicates: true,
-    });
+      batch.forEach(r => {
+        values.push(
+          municipioMap.get(r.municipio)!,
+          r.balneario,
+          r.ponto_coleta,
+          r.localizacao,
+          r.data_coleta,
+          r.hora,
+          r.vento,
+          r.mare,
+          r.chuva,
+          r.agua_temp,
+          r.ar_temp,
+          r.ecoli,
+          r.condicao,
+          year
+        );
+      });
 
-    return { inserted: result.count };
+      const sql = `
+        INSERT IGNORE INTO ima_historico 
+        (municipio_db_id, balneario, ponto_coleta, localizacao, data_coleta, hora, vento, mare, chuva, agua_temp, ar_temp, ecoli, condicao, ano_referencia) 
+        VALUES ${placeholders}
+      `;
+
+      const [result]: any = await pool!.execute(sql, values);
+      insertedCount += result.affectedRows;
+    }
+
+    return { inserted: insertedCount };
   }
 
   private extractValue(text: string): string {
