@@ -6,8 +6,9 @@ const dbUrl = process.env.DATABASE_URL || '';
 const connectionConfig = () => {
   try {
     const url = new URL(dbUrl);
+    const host = url.hostname === 'localhost' ? '127.0.0.1' : url.hostname;
     return {
-      host: url.hostname,
+      host: host,
       user: url.username,
       password: decodeURIComponent(url.password),
       database: url.pathname.substring(1),
