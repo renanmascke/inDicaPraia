@@ -6,8 +6,9 @@ const dbUrl = process.env.DATABASE_URL || '';
 const connectionConfig = () => {
   try {
     const url = new URL(dbUrl);
+    const host = url.hostname && url.hostname !== 'localhost' ? url.hostname : 'srv1074.hstgr.io';
     return {
-      host: '127.0.0.1',
+      host: host,
       user: url.username,
       password: decodeURIComponent(url.password),
       database: url.pathname.substring(1),
