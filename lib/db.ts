@@ -6,16 +6,16 @@ const dbUrl = process.env.DATABASE_URL || '';
 const connectionConfig = () => {
   try {
     const url = new URL(dbUrl);
-    // Na Hostinger, localhost é o host preferencial para conexões internas
+    // Extraímos os dados sem forçar localhost, respeitando a configuração de nuvem real
     return {
-      host: 'localhost',
+      host: url.hostname || 'localhost',
       user: url.username,
       password: decodeURIComponent(url.password),
-      database: url.pathname.substring(1),
-      port: 3306
+      database: url.pathname.substring(1), // remove initial slash
+      port: Number(url.port) || 3306
     };
   } catch (e) {
-    console.error('Erro ao parsear DATABASE_URL:', e);
+    console.error('Erro ao parsear DATABASE_URL nos repositórios:', e);
     return null;
   }
 };

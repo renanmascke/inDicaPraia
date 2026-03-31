@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ImaScraperService } from '@/services/ima.service';
+import { SyncImaRecordsUseCase } from '@/use-cases/SyncImaRecordsUseCase';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,8 +40,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const scraper = new ImaScraperService();
-    const result = await scraper.syncYear(Number(year));
+    const useCase = new SyncImaRecordsUseCase();
+    const result = await useCase.execute(Number(year));
 
     return NextResponse.json(result);
   } catch (error: any) {

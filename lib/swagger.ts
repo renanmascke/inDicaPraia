@@ -1,5 +1,7 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 
+import path from 'path';
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
@@ -10,12 +12,13 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
-        description: 'Servidor Local',
+        url: '/',
+        description: 'Servidor Atual',
       },
     ],
   },
-  apis: ['./app/api/**/*.ts'], // Busca os comentários JSDoc nos arquivos de rota
+  // Usa caminho absoluto para garantir que o swagger-jsdoc encontre os arquivos em produção
+  apis: [path.join(process.cwd(), 'app/api/**/*.ts')],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
