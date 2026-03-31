@@ -3,6 +3,32 @@ import { ImaScraperService } from '@/services/ima.service';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * @openapi
+ * /api/sync:
+ *   post:
+ *     summary: Sincroniza dados de balneabilidade de um ano específico
+ *     description: Inicia o processo de raspagem de dados do site do IMA para o ano fornecido.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - year
+ *             properties:
+ *               year:
+ *                 type: integer
+ *                 description: Ano para sincronização
+ *     responses:
+ *       200:
+ *         description: Sincronização concluída com sucesso
+ *       400:
+ *         description: Parâmetros inválidos
+ *       500:
+ *         description: Erro interno no servidor
+ */
 export async function POST(request: Request) {
   try {
     const { year } = await request.json();

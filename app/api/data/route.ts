@@ -3,6 +3,36 @@ import pool from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * @openapi
+ * /api/data:
+ *   get:
+ *     summary: Retorna dados históricos de balneabilidade
+ *     description: Retorna uma lista de registros de coleta do IMA com filtros opcionais.
+ *     parameters:
+ *       - in: query
+ *         name: municipio
+ *         schema:
+ *           type: string
+ *         description: Nome do município para filtrar
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Limite de registros
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Deslocamento para paginação
+ *     responses:
+ *       200:
+ *         description: Lista de registros retornada com sucesso
+ *       500:
+ *         description: Erro interno no servidor
+ */
 export async function GET(request: Request) {
   if (!pool) {
     return NextResponse.json({ message: 'Conexão com banco desativada.' }, { status: 500 });
