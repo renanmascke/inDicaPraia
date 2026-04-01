@@ -1,5 +1,5 @@
 import StatusBadge from './StatusBadge';
-import { Map as MapIcon, Crosshair } from 'lucide-react';
+import { Map as MapIcon, Crosshair, Radar } from 'lucide-react';
 
 interface Record {
   id: number;
