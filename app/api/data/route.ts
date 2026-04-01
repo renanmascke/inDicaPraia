@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     const offset = Number(searchParams.get('offset')) || 0;
 
     const repo = new BathingRepository();
-    const records = await repo.findRecords(municipio, limit, offset);
+    const records = await repo.findRecords(municipio, '', '', limit, offset);
 
     return NextResponse.json({
       status: 'success',
