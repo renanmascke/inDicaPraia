@@ -1,5 +1,5 @@
 'use client';
-import { CheckCircle2, XCircle, MapPin, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { CheckCircle2, XCircle, MapPin, ArrowUp, ArrowDown, ArrowUpDown, Radar } from 'lucide-react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 interface Record {
